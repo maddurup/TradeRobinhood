@@ -8,6 +8,7 @@ Commands Supported
 * `l` : Lists your current portfolio
 * `b <symbol> <quantity> <price>` : Submits a limit order to buy <quantity> stocks of <symbol> at <price>
 * `s <symbol> <quantity> <price>` : Submits a limit order to sell <quantity> stocks of <symbol> at <price>
+* `p <symbol> <quantity> <price> <delta>` : Submits a stop order to sell <quantity> stocks of <symbol> at <price> - <delta>. Can use c at <price> to use the current price of the symbol
 * `q <symbol>` : Get quote (current price) for symbol
 * `o` : Lists all open orders
 * `c <id>` : Cancel an open order identified by <id> [<id> of a open order can be got from output of `o`]
