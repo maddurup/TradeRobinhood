@@ -4,7 +4,7 @@ import cmd, json
 from Robinhood import Robinhood
 from beautifultable import BeautifulTable
 from config import USERNAME, PASSWORD
-import pprint
+import pprint, time
 pp = pprint.PrettyPrinter(indent=4)
 
 class RobinhoodShell(cmd.Cmd):
@@ -120,7 +120,10 @@ class RobinhoodShell(cmd.Cmd):
             else:
                 price = 0.0
             print(price)    
-            stock_instrument = self.trader.instruments(symbol)[0]
+            stock_instrument = self.trader.instruments(symbol)
+            for item in stock_instrument:
+            	if '/'+symbol+'/' in item['fundamentals']:
+        			stock_instrument = [item][0]
             res = self.trader.place_buy_order(stock_instrument, quantity, price)
 
             if not (res.status_code == 200 or res.status_code == 201):
@@ -130,10 +133,10 @@ class RobinhoodShell(cmd.Cmd):
                     if 'detail' in data:
                         print(data['detail'])
                 except:
-                    pass
+                    print(data['detail'])
             else:
-                print("Done /n trailing stoploss code:-")
-                print("p " + symbol + " " + str(quantity) + " " + str(price) + " 0.001")
+                print("Done\nTrailing stoploss code:- " + "p " + symbol + " " + str(quantity) + " " + str(price) + " 0.0")
+                print(      "Sell code             :- " + "s " + symbol + " " + str(quantity) + " " + str(price))
         else:
             print("Bad Order")
 
@@ -148,7 +151,10 @@ class RobinhoodShell(cmd.Cmd):
             else:
                 price = 0.0
 
-            stock_instrument = self.trader.instruments(symbol)[0]
+            stock_instrument = self.trader.instruments(symbol)
+            for item in stock_instrument:
+            	if '/'+symbol+'/' in item['fundamentals']:
+        			stock_instrument = [item][0]
             res = self.trader.place_sell_order(stock_instrument, quantity, price)
 
             if not (res.status_code == 200 or res.status_code == 201):
@@ -177,7 +183,10 @@ class RobinhoodShell(cmd.Cmd):
 	            price = float(parts[2])
 	            # print(price)
 
-	            stock_instrument = self.trader.instruments(symbol)[0]
+	            stock_instrument = self.trader.instruments(symbol)
+	            for item in stock_instrument:
+	            	if '/'+symbol+'/' in item['fundamentals']:
+	        			stock_instrument = [item][0]
 	            # print(stock_instrument)
 	            res = self.trader.place_stop_loss_order(stock_instrument, quantity, price)
 	            # print(res.status_code)
