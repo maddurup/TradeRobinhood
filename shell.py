@@ -87,6 +87,19 @@ class RobinhoodShell(cmd.Cmd):
 
         print(table)
 
+    def do_oh(self, arg):
+        'Lists order histor'
+
+        orders = self.trader.order_history()['results'][0:100]
+        import pandas as pd
+        from tabulate import tabulate
+        orders_df = pd.DataFrame(orders)[['instrument','average_price','cancel','created_at','cumulative_quantity','fees','response_category','side','state','stop_price','trigger','type']]
+        orders_df['instrument'] = orders_df.instrument.apply(lambda x : self.get_symbol(x))
+        orders_df['created_at'] = orders_df.created_at.apply(lambda x : x[0:19])
+        orders_df['quantity'] = orders_df['cumulative_quantity']
+        orders_df = orders_df.drop(['cumulative_quantity'], axis =1)
+        print(tabulate(orders_df.head(10), headers='keys', tablefmt='psql'))
+
     def do_w(self, arg):
         'Show watchlist w \nAdd to watchlist w a <symbol> \nRemove from watchlist w r <symbol>'
         parts = arg.split()
@@ -122,8 +135,8 @@ class RobinhoodShell(cmd.Cmd):
             print(price)    
             stock_instrument = self.trader.instruments(symbol)
             for item in stock_instrument:
-            	if '/'+symbol+'/' in item['fundamentals']:
-        			stock_instrument = [item][0]
+                if '/'+symbol+'/' in item['fundamentals']:
+                    stock_instrument = [item][0]
             res = self.trader.place_buy_order(stock_instrument, quantity, price)
 
             if not (res.status_code == 200 or res.status_code == 201):
@@ -140,6 +153,43 @@ class RobinhoodShell(cmd.Cmd):
         else:
             print("Bad Order")
 
+    def do_lb(self, arg):
+        'Buy stock b <symbol> <quantity> <price>'
+        parts = arg.split()
+        if len(parts) >= 2 and len(parts) <= 3:
+            symbol = parts[0]
+            quantity = parts[1]
+            if len(parts) == 3:
+                price = float(parts[2])
+            else:
+                price = 0.0
+            print(price)    
+            stock_instrument = self.trader.instruments(symbol)
+            pp.pprint(stock_instrument)
+            for item in stock_instrument:
+                if '/'+symbol+'/' in item['fundamentals']:
+                    stock_instrument = [item][0]
+            try:
+                    res = self.trader.place_limit_buy_order(stock_instrument['fundamentals'],symbol,'GFD', price, quantity)
+            except Exception as e:
+                print(e)
+        #     import time
+        #     time.sleep(10)
+
+        #     if not (res.status_code == 200 or res.status_code == 201):
+        #         print("Error executing order")
+        #         try:
+        #             data = res.json()
+        #             if 'detail' in data:
+        #                 print(data['detail'])
+        #         except:
+        #             print(data['detail'])
+        #     else:
+        #         print("Done\nTrailing stoploss code:- " + "p " + symbol + " " + str(quantity) + " " + str(price) + " 0.0")
+        #         print(      "Sell code             :- " + "s " + symbol + " " + str(quantity) + " " + str(price))
+        # else:
+        #     print("Bad Order")
+
     def do_s(self, arg):
         'Sell stock s <symbol> <quantity> <?price>'
         parts = arg.split()
@@ -153,8 +203,8 @@ class RobinhoodShell(cmd.Cmd):
 
             stock_instrument = self.trader.instruments(symbol)
             for item in stock_instrument:
-            	if '/'+symbol+'/' in item['fundamentals']:
-        			stock_instrument = [item][0]
+                if '/'+symbol+'/' in item['fundamentals']:
+                    stock_instrument = [item][0]
             res = self.trader.place_sell_order(stock_instrument, quantity, price)
 
             if not (res.status_code == 200 or res.status_code == 201):
@@ -175,22 +225,22 @@ class RobinhoodShell(cmd.Cmd):
         parts = arg.split()
         # print(len(parts))
         try:
-        	if len(parts) == 3:
-	            symbol = parts[0]
+            if len(parts) == 3:
+                symbol = parts[0]
 	            # print(symbol)
-	            quantity = parts[1]
+                quantity = parts[1]
 	            # print(quantity)
-	            price = float(parts[2])
+                price = float(parts[2])
 	            # print(price)
 
-	            stock_instrument = self.trader.instruments(symbol)
-	            for item in stock_instrument:
-	            	if '/'+symbol+'/' in item['fundamentals']:
-	        			stock_instrument = [item][0]
+                stock_instrument = self.trader.instruments(symbol)
+                for item in stock_instrument:
+                    if '/'+symbol+'/' in item['fundamentals']:
+                        stock_instrument = [item][0]
 	            # print(stock_instrument)
-	            res = self.trader.place_stop_loss_order(stock_instrument, quantity, price)
+                res = self.trader.place_stop_loss_order(stock_instrument, quantity, price)
 	            # print(res.status_code)
-	            if not (res.status_code == 200 or res.status_code == 201):
+                if not (res.status_code == 200 or res.status_code == 201):
 	                print("Error executing order")
 	                try:
 	                    data = res.json()
@@ -198,9 +248,9 @@ class RobinhoodShell(cmd.Cmd):
 	                        print(data['detail'])
 	                except:
 	                    pass
-	            else:
+                else:
 	                print("Done")
-	        else:
+            else:
 	            print("Bad Order")
         except Exception as e:
         	print(e)
@@ -209,61 +259,70 @@ class RobinhoodShell(cmd.Cmd):
         'List open orders'
         open_orders = self.trader.get_open_orders()
         # pp.pprint(open_orders)
-        if open_orders:
-            table = BeautifulTable(max_width=100)
-            table.column_headers = ["index", "symbol", "price", "quantity", "type", "id"]
+        try:
+            if open_orders:
+                table = BeautifulTable(max_width=100)
+                table.column_headers = ["index", "symbol", "price", "quantity", "type", "id"]
 
-            index = 1
-            for order in open_orders:
-                table.append_row([
-                    index,
-                    self.get_symbol(order['instrument']),
-                    order['price'],
-                    int(float(order['quantity'])),
-                    order['side'],
-                    order['id'],
-                ])
-                index += 1
-
-            print(table)
-        else:
-            print("No Open Orders")
+                index = 1
+                for order in open_orders:
+                    table.append_row([
+                        index,
+                        self.get_symbol(order['instrument']),
+                        order['price'],
+                        int(float(order['quantity'])),
+                        order['side'],
+                        order['id'],
+                    ])
+                    index += 1
+                print(table)
+            else:
+                print("No Open Orders")
+        except Exception as e:
+            pp.pprint(open_orders)
+            print('exception')
+            print(e)
 
     def do_p(self, arg):
-		'Setup stop loss on stock tsl <symbol> <quantity> <price> <trail_by>'
-		parts = arg.split()
-		try:
-			if len(parts) == 4:
-				symbol = parts[0]
-				# print(symbol)
-				quantity = parts[1]
-				trail_by = parts[3]
+        'Setup stop loss on stock tsl <symbol> <quantity> <price> <trail_by>'
+        parts = arg.split()
+        try:
+            if len(parts) == 4:
+                symbol = parts[0]
+                # print(symbol)
+                quantity = parts[1]
+                trail_by = parts[3]
 				# print(self.trader.quotes_data([symbol])[0]['last_trade_price'])
-				if str(parts[2]) == 'c':
-					print("taking current value minus trail by")
-					price = float(self.trader.quotes_data([symbol])[0]['last_trade_price']) - float(trail_by)
-				else:
-					price = float(parts[2]) - float(trail_by)
+                if str(parts[2]) == 'c':
+                    print("taking current value minus trail by")
+                    price = round(float(self.trader.quotes_data([symbol])[0]['last_trade_price']) - float(trail_by),2)
+                    print(price)
+                else:
+                    price = float(parts[2]) - float(trail_by)
 				# print(price)
 
-				stock_instrument = self.trader.instruments(symbol)[0]
-				# print(stock_instrument)
-				res = self.trader.place_stop_loss_order(stock_instrument, quantity, price)
-				# print(res.status_code)
-				if not (res.status_code == 200 or res.status_code == 201):
-					print("Error executing order")
-					try:
-						data = res.json()
-						if 'detail' in data:
-							print(data['detail'])
-					except:
-						pass
-				else:
-					print("Done")
-			else:
-				print("Bad Order")
-		except Exception as e:
-			print(e)
+                stock_instrument = self.trader.instruments(symbol)
+                for item in stock_instrument:
+                    if '/'+symbol+'/' in item['fundamentals']:
+                        stock_instrument = [item][0]
+                # print(stock_instrument)
+                res = self.trader.place_stop_loss_order(stock_instrument, quantity, price)
+                # print(res.status_code)
+                if not (res.status_code == 200 or res.status_code == 201):
+                    print("Error executing order")
+                    try:
+                        data = res.json()
+                        if 'detail' in data:
+                            print(data['detail'])
+                    except:
+                        pass
+                else:
+                    print("Done")
+                    pp.pprint(res)
+            else:
+                print("Bad Order")
+        except Exception as e:
+            print(e)
 
     def do_c(self, arg):
         'Cancel open order c <index> or c <id>'
@@ -302,7 +361,7 @@ class RobinhoodShell(cmd.Cmd):
         	pp.pprint(self.trader.cancel_open_orders())
         except:
         	print("Error cancelling - could be no Open Orders")
-        print "Done"
+        print("Done")
 
     def do_q(self, arg):
         'Get quote for stock q <symbol>'
